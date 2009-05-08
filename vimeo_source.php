@@ -3,7 +3,7 @@
 * Vimeo Datasource 0.1 
 * 
 * Vimeo datasource to communicate with the Vimeo Simple API (Advanced on the way...) 
-* 
+* Also utilizes the Vimeo oEmbed API for generating embed code.
 * 
 * Licensed under The MIT License 
 * Redistributions of files must retain the above copyright notice. 
@@ -66,6 +66,41 @@ class VimeoSource extends DataSource {
 	function __construct($config = null) {
 		parent::__construct($config);
 		$this->Http =& new HttpSocket();
+	}
+	
+	/** 
+	* Shortcut to retrieve only the embed code of the oembed object for a specific video.
+	* 
+	* @param string videoId Required.
+	* @param array options Optional. 
+	* @see http://www.vimeo.com/api/docs/oembed
+	*/ 
+	function embed($videoId = null, $options = null) {
+		if (!empty($videoId)) {
+			$_oembed = $this->oembed($videoId, $options);
+			return $_oembed->html;
+		}
+		return false;
+	}
+	
+	
+	/** 
+	* Retrieve oembed object for a specific video
+	* 
+	* @param string videoId Required.
+	* @param array options Optional. 
+	* @see http://www.vimeo.com/api/docs/oembed
+	*/ 
+	function oembed($videoId = null, $options = null) {
+		if (!empty($videoId)) {
+			$url = "http://vimeo.com/api/oembed.json?url=http://vimeo.com/{$videoId}";
+			foreach ($options as $key => $value) {
+				$url .= "&{$key}={$value}";
+			}
+			$response = $this->Http->get($url);
+			return json_decode($response);
+		}
+		return false;
 	}
 	
 	/** 
