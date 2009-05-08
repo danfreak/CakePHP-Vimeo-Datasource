@@ -136,7 +136,7 @@ class VimeoSource extends DataSource {
 	* @param string request Required. See allowed requests in api documentation
 	* @see http://www.vimeo.com/api/docs/simple-api
 	*/ 
-	function groupRequest($channelname = null, $request = null) {
+	function channelRequest($channelname = null, $request = null) {
 		if (!empty($channelname) && !empty($request)) {
 			if (in_array($request, $this->allowedRequests['channel'])) {
 				return $this->__vimeoApiRequest("channel/{$channelname}/{$request}");
@@ -152,7 +152,7 @@ class VimeoSource extends DataSource {
 	* @param string request Required. See allowed requests in api documentation
 	* @see http://www.vimeo.com/api/docs/simple-api
 	*/ 
-	function groupRequest($albumname = null, $request = null) {
+	function albumRequest($albumname = null, $request = null) {
 		if (!empty($albumname) && !empty($request)) {
 			if (in_array($request, $this->allowedRequests['album'])) {
 				return $this->__vimeoApiRequest("album/{$albumname}/{$request}");
