@@ -1,6 +1,6 @@
 <?php
 /** 
-* Vimeo Datasource 0.1 
+* Vimeo Datasource 0.2 
 * 
 * Vimeo datasource to communicate with the Vimeo Simple API (Advanced on the way...) 
 * Also utilizes the Vimeo oEmbed API for generating embed code.
@@ -11,8 +11,10 @@
 * 
 * @author Jon (pointlessjon) Adams <jon@anti-gen.com> 
 * @copyright (c) n/a
+* @link http://github.com/pointlessjon/CakePHP-Vimeo-Datasource/tree/master
 * @license http://www.opensource.org/licenses/mit-license.php The MIT License 
 * @created May 7, 2009 
+* @updated June 18, 2009
 * @version 0.1 * 
 */
 App::import('Core', array('HttpSocket'));
@@ -66,6 +68,7 @@ class VimeoSource extends DataSource {
 	function __construct($config = null) {
 		parent::__construct($config);
 		$this->Http =& new HttpSocket();
+		Cache::config('vimeo', array('engine' => 'File', 'duration'=> '+1 days', 'path' => CACHE . DS . 'vimeo' . DS,'prefix' => 'vimeo_cache_'));
 	}
 	
 	/** 
@@ -93,12 +96,20 @@ class VimeoSource extends DataSource {
 	*/ 
 	function oembed($videoId = null, $options = null) {
 		if (!empty($videoId)) {
-			$url = "http://vimeo.com/api/oembed.json?url=http://vimeo.com/{$videoId}";
-			foreach ($options as $key => $value) {
-				$url .= "&{$key}={$value}";
+			$request = "http://vimeo.com/api/oembed.json?url=http://vimeo.com/{$videoId}";
+			if (!empty($options)) {
+				foreach ($options as $key => $value) {
+					$request .= "&{$key}={$value}";
+				}
 			}
-			$response = $this->Http->get($url);
-			return json_decode($response);
+			if ($cached = $this->_getCache($request)) {
+				// keep it going...
+			} else {
+				$response = $this->Http->get($request);
+				$data = json_decode($response);
+				$cached = $this->_createCache($request, $data);
+			}
+			return $cached;
 		}
 		return false;
 	}
@@ -202,11 +213,33 @@ class VimeoSource extends DataSource {
 	* @param string data Required.
 	* @see http://www.vimeo.com/api/docs/simple-api
 	*/ 
-	function __vimeoApiRequest($data = null) {
-		if (!empty($data)) {
-			return unserialize($this->Http->get("http://vimeo.com/api/{$data}.php", null));
+	function __vimeoApiRequest($request = null) {
+		if (!empty($request)) {
+			$request = "http://vimeo.com/api/{$request}.php";
+			if ($cached = $this->_getCache($request)) {
+				// keep it going...
+			} else {
+				$data = unserialize($this->Http->get($request, null));
+				$cached = $this->_createCache($request, $data);
+			}
+			return $cached;
 		}
 		return false;
+	}
+	
+	function _getCache($request = null) {
+		return Cache::read($this->_requestToCacheKey($request), 'vimeo');
+	}
+	
+	function _createCache($request = null, $data = null) {
+		if (!empty($request) && !empty($data)) {
+			Cache::write($this->_requestToCacheKey($request), $data, 'vimeo');
+		}
+		return $data;
+	}
+	
+	function _requestToCacheKey($request = null) {	
+		return md5($request);
 	}
  
 }
